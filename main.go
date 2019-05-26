@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/BurntSushi/toml"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
@@ -10,11 +11,14 @@ import (
 	"time"
 )
 
-var PORT = "8000"                                     // 监听端口
-var DSN = "root:whoisnian@tcp(127.0.0.1:3306)/record" // 数据库
-var TOKEN = "K4X9P2iws28ekGN9"                        // Token
-
 var db *sql.DB
+var CONFIG Config
+
+type Config struct {
+	PORT  string `toml:"port"`
+	DSN   string `toml:"dsn"`
+	TOKEN string `toml:"token"`
+}
 
 type RecordType string
 
@@ -40,7 +44,7 @@ func checkToken(w http.ResponseWriter, r *http.Request) bool {
 	if r.Header.Get("Authorization") == "" && r.FormValue("token") == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return false
-	} else if r.Header.Get("Authorization") != "Bearer "+TOKEN && r.FormValue("token") != TOKEN {
+	} else if r.Header.Get("Authorization") != "Bearer "+CONFIG.TOKEN && r.FormValue("token") != CONFIG.TOKEN {
 		w.WriteHeader(http.StatusForbidden)
 		return false
 	}
@@ -275,9 +279,13 @@ func deleteRecord(w http.ResponseWriter, r *http.Request, t RecordType) {
 }
 
 func main() {
+	_, err := toml.DecodeFile("config.toml", &CONFIG)
+	if err != nil {
+		panic(err)
+	}
+
 	// 连接数据库
-	var err error
-	db, err = sql.Open("mysql", DSN)
+	db, err = sql.Open("mysql", CONFIG.DSN)
 	if err != nil {
 		log.Panicln(err.Error())
 	}
@@ -380,8 +388,8 @@ func main() {
 	})
 
 	// 启动服务
-	log.Printf("Server started: <http://127.0.0.1:%v>\n", PORT)
-	err = http.ListenAndServe(":"+PORT, nil)
+	log.Printf("Server started: <http://127.0.0.1:%v>\n", CONFIG.PORT)
+	err = http.ListenAndServe(":"+CONFIG.PORT, nil)
 	if err != nil {
 		log.Panicln(err.Error())
 	}

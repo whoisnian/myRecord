@@ -1,0 +1,4 @@
+# Configuration file for myRecord
+port = "8000"
+dsn = "root:whoisnian@tcp(127.0.0.1:3306)/record"
+token = "K4X9P2iws28ekGN9"
