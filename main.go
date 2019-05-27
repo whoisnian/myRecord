@@ -160,7 +160,8 @@ func newRecord(w http.ResponseWriter, r *http.Request, t RecordType) {
 	if t == DayRecordType {
 		recordTime = nowTime.Year()*10000 + int(nowTime.Month())*100 + nowTime.Day()
 	} else if t == WeekRecordType {
-		recordTime = nowTime.Year()*100 + (nowTime.YearDay()-int(nowTime.Weekday())+7)/7
+		isoYear, isoWeek := nowTime.ISOWeek()
+		recordTime = isoYear*100 + isoWeek
 	} else if t == MonthRecordType {
 		recordTime = nowTime.Year()*100 + int(nowTime.Month())
 	}
