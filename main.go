@@ -39,6 +39,17 @@ type records struct {
 	Records []record `json:"records"`
 }
 
+type goal struct {
+	Id      int    `json:"id"`
+	Content string `json:"content"`
+	Status  int    `json:"status"`
+}
+
+type goals struct {
+	Num   int    `json:"num"`
+	Goals []goal `json:"goals"`
+}
+
 // 检查Token
 func checkToken(w http.ResponseWriter, r *http.Request) bool {
 	if r.Header.Get("Authorization") == "" && r.FormValue("token") == "" {
@@ -279,6 +290,230 @@ func deleteRecord(w http.ResponseWriter, r *http.Request, t RecordType) {
 	}
 }
 
+// 获取单个goal
+func getSingleGoal(w http.ResponseWriter, r *http.Request) {
+	// 获取请求goal的id
+	id, err := strconv.Atoi(r.URL.Path[len("/goal/"):])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// 根据id查询goal
+	row, err := db.Query("SELECT id, content, status FROM goal WHERE id=?", id)
+	defer row.Close()
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if row.Next() {
+		// 返回json
+		var resId int
+		var resContent string
+		var resStatus int
+		row.Scan(&resId, &resContent, &resStatus)
+		var res = goal{
+			resId,
+			resContent,
+			resStatus}
+		resp, err := json.Marshal(res)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(resp)
+		return
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+}
+
+// 获取指定status的goal
+func getGoals(w http.ResponseWriter, r *http.Request) {
+	// 获取请求goal的status
+	var status int
+	var err error
+	if r.FormValue("status") == "" {
+		status = 0
+	} else {
+		status, err = strconv.Atoi(r.FormValue("status"))
+		if err != nil {
+			status = 0
+		}
+	}
+
+	// 根据范围查询goal
+	var row *sql.Rows
+	if status == 0 {
+		row, err = db.Query("SELECT id, content, status FROM goal")
+	} else {
+		row, err = db.Query("SELECT id, content, status FROM goal WHERE status=?", status)
+	}
+	defer row.Close()
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// 返回json
+	var res goals
+	for row.Next() {
+		var resId int
+		var resContent string
+		var resStatus int
+		row.Scan(&resId, &resContent, &resStatus)
+		res.Goals = append(res.Goals, goal{
+			resId,
+			resContent,
+			resStatus})
+	}
+	res.Num = len(res.Goals)
+	resp, err := json.Marshal(res)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+// 新建goal
+func newGoal(w http.ResponseWriter, r *http.Request) {
+	if !checkToken(w, r) {
+		return
+	}
+
+	// 查询是否已有goal
+	row, err := db.Query("SELECT 1 FROM goal WHERE content=? limit 1", r.FormValue("content"))
+	defer row.Close()
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if row.Next() {
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+
+	// 添加goal
+	_, err = db.Exec("INSERT goal SET content=?,status=?", r.FormValue("content"), 1)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// 更新goal
+func updateGoal(w http.ResponseWriter, r *http.Request) {
+	if !checkToken(w, r) {
+		return
+	}
+
+	// 获取请求goal的id
+	id, err := strconv.Atoi(r.URL.Path[len("/goal/"):])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// 获取要修改的属性
+	var content string
+	var status int
+	if r.FormValue("status") == "" {
+		status = 0
+	} else {
+		status, err = strconv.Atoi(r.FormValue("status"))
+		if err != nil {
+			status = 0
+		}
+	}
+	if r.FormValue("content") != "" {
+		content = r.FormValue("content")
+	} else {
+		content = ""
+	}
+
+	// 根据id查询goal
+	row, err := db.Query("SELECT 1 FROM goal WHERE id=?", id)
+	defer row.Close()
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if row.Next() {
+		// 更新goal
+		if content != "" {
+			_, err = db.Exec("UPDATE goal SET content=? WHERE id=?", content, id)
+			if err != nil {
+				log.Println(err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else if status != 0 {
+			_, err = db.Exec("UPDATE goal SET status=? WHERE id=?", status, id)
+			if err != nil {
+				log.Println(err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+}
+
+// 删除record
+func deleteGoal(w http.ResponseWriter, r *http.Request) {
+	if !checkToken(w, r) {
+		return
+	}
+
+	// 获取请求goal的id
+	id, err := strconv.Atoi(r.URL.Path[len("/goal/"):])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// 根据id查询goal
+	row, err := db.Query("SELECT 1 FROM goal WHERE id=?", id)
+	defer row.Close()
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if row.Next() {
+		// 删除goal
+		_, err = db.Exec("DELETE FROM goal WHERE id=?", id)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+}
+
 func main() {
 	_, err := toml.DecodeFile("config.toml", &CONFIG)
 	if err != nil {
@@ -383,6 +618,36 @@ func main() {
 			updateRecord(w, r, MonthRecordType)
 		} else if r.Method == http.MethodDelete {
 			deleteRecord(w, r, MonthRecordType)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	// GET		/goal/{id}						getSingleGoal
+	// GET		/goal/?status={status}			getGoals
+	// POST		/goal/							newGoal
+	// PUT		/goal/{id}						updateGoal
+	// DELETE	/goal/{id}						deleteGoal
+	http.HandleFunc("/goal/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		if r.Method == http.MethodGet {
+			if r.FormValue("status") == "" {
+				getSingleGoal(w, r)
+			} else {
+				getGoals(w, r)
+			}
+		} else if r.Method == http.MethodPost {
+			if r.FormValue("_method") == http.MethodPut {
+				updateGoal(w, r)
+			} else if r.FormValue("_method") == http.MethodDelete {
+				deleteGoal(w, r)
+			} else {
+				newGoal(w, r)
+			}
+		} else if r.Method == http.MethodPut {
+			updateGoal(w, r)
+		} else if r.Method == http.MethodDelete {
+			deleteGoal(w, r)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
