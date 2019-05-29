@@ -197,7 +197,7 @@ fetch(ServerAddr+'/flag/?status=1')
     if(json.flags == null) return;
     for(var i = 0;i < json.flags.length;i++) {
       var listItem = document.createElement('li');
-      listItem.innerHTML = json.flags[i].content;
+      listItem.innerHTML = html2Escape(json.flags[i].content);
       flag_pendingList.appendChild(listItem);
     }
   });
@@ -214,7 +214,7 @@ fetch(ServerAddr+'/flag/?status=2')
     if(json.flags == null) return;
     for(var i = 0;i < json.flags.length;i++) {
       var listItem = document.createElement('li');
-      listItem.innerHTML = json.flags[i].content;
+      listItem.innerHTML = html2Escape(json.flags[i].content);
       flag_finishedList.appendChild(listItem);
     }
   });
@@ -252,9 +252,15 @@ fetch(ServerAddr+'/'+record_type+'/?from='+fromStr+'&to='+toStr)
         timeStr += '-' + (json.records[i].time%100 >= 10?"":"0") + parseInt(json.records[i].time%100).toString();
       }
       listItem.innerHTML = '<div class="record_time">'+timeStr+'</div>';
-      listItem.innerHTML += '<div class="record_content">'+json.records[i].content+'</div>'
+      listItem.innerHTML += '<div class="record_content">'+html2Escape(json.records[i].content)+'</div>'
       recordList.appendChild(listItem);
     }
+  });
+}
+
+function html2Escape(sHtml) {
+  return sHtml.replace(/[<>&"' \n]/g, function(c){
+    return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&#34;','\'':'&#39;',' ':'&nbsp;','\n':'<br />'}[c];
   });
 }
 
