@@ -40,22 +40,37 @@
     }
 }
 .record ul {
-    list-style-type: none;
+    list-style-type: circle;
+    list-style-position: inside;
 }
 .record ul li {
     display: flex;
     align-items: baseline;
+    flex-direction: row;
 }
 .record_time {
+    margin: 0;
     padding: 10px 10px 10px 0;
     white-space: nowrap;
     font-family: 'Lucida Console', monospace;
 }
 .record_content {
+    margin: 0;
     border-left: 1px solid #000000;
     padding: 10px 0 10px 10px;
     word-wrap: break-word;
     word-break: break-all;
+}
+@media (max-width: 48em) {
+    .record ul li {
+        flex-direction: column;
+    }
+    .record_time {
+        margin: 0 0 0 -30px;
+    }
+    .record_content {
+        margin: 0 0 0 -10px;
+    }
 }
 .record_type {
     position: fixed;
