@@ -481,7 +481,7 @@ func updateFlag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 删除record
+// 删除flag
 func deleteFlag(w http.ResponseWriter, r *http.Request) {
 	if !checkToken(w, r) {
 		return
