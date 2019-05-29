@@ -27,7 +27,7 @@ CREATE TABLE `record`.`record_month`(
     PRIMARY KEY(`id`)
 );
 
-CREATE TABLE `record`.`goal`(
+CREATE TABLE `record`.`flag`(
     `id` INT NOT NULL AUTO_INCREMENT,
     `content` TEXT NOT NULL,
     `status` INT NOT NULL,

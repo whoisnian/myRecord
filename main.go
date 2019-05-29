@@ -39,15 +39,15 @@ type records struct {
 	Records []record `json:"records"`
 }
 
-type goal struct {
+type flag struct {
 	Id      int    `json:"id"`
 	Content string `json:"content"`
 	Status  int    `json:"status"`
 }
 
-type goals struct {
+type flags struct {
 	Num   int    `json:"num"`
-	Goals []goal `json:"goals"`
+	Flags []flag `json:"flags"`
 }
 
 // 检查Token
@@ -103,6 +103,7 @@ func getSingleRecord(w http.ResponseWriter, r *http.Request, t RecordType) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		//w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
@@ -155,6 +156,7 @@ func getRecords(w http.ResponseWriter, r *http.Request, t RecordType) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
@@ -290,17 +292,17 @@ func deleteRecord(w http.ResponseWriter, r *http.Request, t RecordType) {
 	}
 }
 
-// 获取单个goal
-func getSingleGoal(w http.ResponseWriter, r *http.Request) {
-	// 获取请求goal的id
-	id, err := strconv.Atoi(r.URL.Path[len("/goal/"):])
+// 获取单个flag
+func getSingleFlag(w http.ResponseWriter, r *http.Request) {
+	// 获取请求flag的id
+	id, err := strconv.Atoi(r.URL.Path[len("/flag/"):])
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	// 根据id查询goal
-	row, err := db.Query("SELECT id, content, status FROM goal WHERE id=?", id)
+	// 根据id查询flag
+	row, err := db.Query("SELECT id, content, status FROM flag WHERE id=?", id)
 	defer row.Close()
 	if err != nil {
 		log.Println(err.Error())
@@ -313,7 +315,7 @@ func getSingleGoal(w http.ResponseWriter, r *http.Request) {
 		var resContent string
 		var resStatus int
 		row.Scan(&resId, &resContent, &resStatus)
-		var res = goal{
+		var res = flag{
 			resId,
 			resContent,
 			resStatus}
@@ -323,6 +325,7 @@ func getSingleGoal(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		//w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
@@ -333,9 +336,9 @@ func getSingleGoal(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 获取指定status的goal
-func getGoals(w http.ResponseWriter, r *http.Request) {
-	// 获取请求goal的status
+// 获取指定status的flag
+func getFlags(w http.ResponseWriter, r *http.Request) {
+	// 获取请求flag的status
 	var status int
 	var err error
 	if r.FormValue("status") == "" {
@@ -347,12 +350,12 @@ func getGoals(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 根据范围查询goal
+	// 根据范围查询flag
 	var row *sql.Rows
 	if status == 0 {
-		row, err = db.Query("SELECT id, content, status FROM goal")
+		row, err = db.Query("SELECT id, content, status FROM flag")
 	} else {
-		row, err = db.Query("SELECT id, content, status FROM goal WHERE status=?", status)
+		row, err = db.Query("SELECT id, content, status FROM flag WHERE status=?", status)
 	}
 	defer row.Close()
 	if err != nil {
@@ -362,37 +365,38 @@ func getGoals(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 返回json
-	var res goals
+	var res flags
 	for row.Next() {
 		var resId int
 		var resContent string
 		var resStatus int
 		row.Scan(&resId, &resContent, &resStatus)
-		res.Goals = append(res.Goals, goal{
+		res.Flags = append(res.Flags, flag{
 			resId,
 			resContent,
 			resStatus})
 	}
-	res.Num = len(res.Goals)
+	res.Num = len(res.Flags)
 	resp, err := json.Marshal(res)
 	if err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
 
-// 新建goal
-func newGoal(w http.ResponseWriter, r *http.Request) {
+// 新建flag
+func newFlag(w http.ResponseWriter, r *http.Request) {
 	if !checkToken(w, r) {
 		return
 	}
 
-	// 查询是否已有goal
-	row, err := db.Query("SELECT 1 FROM goal WHERE content=? limit 1", r.FormValue("content"))
+	// 查询是否已有flag
+	row, err := db.Query("SELECT 1 FROM flag WHERE content=? limit 1", r.FormValue("content"))
 	defer row.Close()
 	if err != nil {
 		log.Println(err.Error())
@@ -404,8 +408,8 @@ func newGoal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 添加goal
-	_, err = db.Exec("INSERT goal SET content=?,status=?", r.FormValue("content"), 1)
+	// 添加flag
+	_, err = db.Exec("INSERT flag SET content=?,status=?", r.FormValue("content"), 1)
 	if err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -414,14 +418,14 @@ func newGoal(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// 更新goal
-func updateGoal(w http.ResponseWriter, r *http.Request) {
+// 更新flag
+func updateFlag(w http.ResponseWriter, r *http.Request) {
 	if !checkToken(w, r) {
 		return
 	}
 
-	// 获取请求goal的id
-	id, err := strconv.Atoi(r.URL.Path[len("/goal/"):])
+	// 获取请求flag的id
+	id, err := strconv.Atoi(r.URL.Path[len("/flag/"):])
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -444,8 +448,8 @@ func updateGoal(w http.ResponseWriter, r *http.Request) {
 		content = ""
 	}
 
-	// 根据id查询goal
-	row, err := db.Query("SELECT 1 FROM goal WHERE id=?", id)
+	// 根据id查询flag
+	row, err := db.Query("SELECT 1 FROM flag WHERE id=?", id)
 	defer row.Close()
 	if err != nil {
 		log.Println(err.Error())
@@ -454,16 +458,16 @@ func updateGoal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if row.Next() {
-		// 更新goal
+		// 更新flag
 		if content != "" {
-			_, err = db.Exec("UPDATE goal SET content=? WHERE id=?", content, id)
+			_, err = db.Exec("UPDATE flag SET content=? WHERE id=?", content, id)
 			if err != nil {
 				log.Println(err.Error())
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		} else if status != 0 {
-			_, err = db.Exec("UPDATE goal SET status=? WHERE id=?", status, id)
+			_, err = db.Exec("UPDATE flag SET status=? WHERE id=?", status, id)
 			if err != nil {
 				log.Println(err.Error())
 				w.WriteHeader(http.StatusInternalServerError)
@@ -478,20 +482,20 @@ func updateGoal(w http.ResponseWriter, r *http.Request) {
 }
 
 // 删除record
-func deleteGoal(w http.ResponseWriter, r *http.Request) {
+func deleteFlag(w http.ResponseWriter, r *http.Request) {
 	if !checkToken(w, r) {
 		return
 	}
 
-	// 获取请求goal的id
-	id, err := strconv.Atoi(r.URL.Path[len("/goal/"):])
+	// 获取请求flag的id
+	id, err := strconv.Atoi(r.URL.Path[len("/flag/"):])
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	// 根据id查询goal
-	row, err := db.Query("SELECT 1 FROM goal WHERE id=?", id)
+	// 根据id查询flag
+	row, err := db.Query("SELECT 1 FROM flag WHERE id=?", id)
 	defer row.Close()
 	if err != nil {
 		log.Println(err.Error())
@@ -500,8 +504,8 @@ func deleteGoal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if row.Next() {
-		// 删除goal
-		_, err = db.Exec("DELETE FROM goal WHERE id=?", id)
+		// 删除flag
+		_, err = db.Exec("DELETE FROM flag WHERE id=?", id)
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -623,35 +627,37 @@ func main() {
 		}
 	})
 
-	// GET		/goal/{id}						getSingleGoal
-	// GET		/goal/?status={status}			getGoals
-	// POST		/goal/							newGoal
-	// PUT		/goal/{id}						updateGoal
-	// DELETE	/goal/{id}						deleteGoal
-	http.HandleFunc("/goal/", func(w http.ResponseWriter, r *http.Request) {
+	// GET		/flag/{id}						getSingleFlag
+	// GET		/flag/?status={status}			getFlags
+	// POST		/flag/							newFlag
+	// PUT		/flag/{id}						updateFlag
+	// DELETE	/flag/{id}						deleteFlag
+	http.HandleFunc("/flag/", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
 		if r.Method == http.MethodGet {
 			if r.FormValue("status") == "" {
-				getSingleGoal(w, r)
+				getSingleFlag(w, r)
 			} else {
-				getGoals(w, r)
+				getFlags(w, r)
 			}
 		} else if r.Method == http.MethodPost {
 			if r.FormValue("_method") == http.MethodPut {
-				updateGoal(w, r)
+				updateFlag(w, r)
 			} else if r.FormValue("_method") == http.MethodDelete {
-				deleteGoal(w, r)
+				deleteFlag(w, r)
 			} else {
-				newGoal(w, r)
+				newFlag(w, r)
 			}
 		} else if r.Method == http.MethodPut {
-			updateGoal(w, r)
+			updateFlag(w, r)
 		} else if r.Method == http.MethodDelete {
-			deleteGoal(w, r)
+			deleteFlag(w, r)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	})
+
+	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("html"))))
 
 	// 启动服务
 	log.Printf("Server started: <http://127.0.0.1:%v>\n", CONFIG.PORT)
