@@ -234,6 +234,21 @@ fetch(ServerAddr+'/flag/?status=2')
   });
 
 getRecords();
+
+function getMoreRecords() {
+  if(record_type == "day-record") {
+    fromDate.setDate(fromDate.getDate()-num);
+    toDate.setDate(toDate.getDate()-num-1);
+  } else if(record_type == "week-record") {
+    fromDate.setDate(fromDate.getDate()-num);
+    toDate.setDate(toDate.getDate()-num-7);
+  } else if(record_type == "month-record") {
+    fromDate.setDate(fromDate.getDate()-num);
+    toDate.setDate(toDate.getDate()-num-30);
+  }
+  getRecords();
+}
+
 function getRecords() {
 var recordList = document.querySelector('.record ul');
 if(record_type == "day-record") {
@@ -254,21 +269,15 @@ fetch(ServerAddr+'/'+record_type+'/?from='+fromStr+'&to='+toStr)
     return response.json();
   })
   .then(function(json) {
-    if(json.num == 0) {
-      if(record_type == "day-record") {
-        fromDate.setDate(fromDate.getDate()-num);
-        toDate.setDate(toDate.getDate()-num-1);
-      } else if(record_type == "week-record") {
-        fromDate.setDate(fromDate.getDate()-num);
-        toDate.setDate(toDate.getDate()-num-7);
-      } else if(record_type == "month-record") {
-        fromDate.setDate(fromDate.getDate()-num);
-        toDate.setDate(toDate.getDate()-num-30);
-      }
-      getRecords();
+    if(json.num < 0) {
+      return;
+    } else if(json.num == 0) {
+      getMoreRecords();
+      return;
+    } else if(json.records == null) {
       return;
     }
-    if(json.num < 0 || json.records == null) return;
+    
     for(var i = json.records.length-1;i >= 0;i--) {
       var listItem = document.createElement('li');
       if(record_type == "day-record") {
@@ -282,6 +291,10 @@ fetch(ServerAddr+'/'+record_type+'/?from='+fromStr+'&to='+toStr)
       listItem.innerHTML = '<div class="record_time">'+timeStr+'</div>';
       listItem.innerHTML += '<div class="record_content">'+html2Escape(json.records[i].content)+'</div>'
       recordList.appendChild(listItem);
+    }
+
+    if(recordList.childElementCount < 20) {
+      getMoreRecords();
     }
   });
 }
