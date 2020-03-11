@@ -3,16 +3,21 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/BurntSushi/toml"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/BurntSushi/toml"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
 var CONFIG Config
+
+var firstDayRecord int = 0
+var firstWeekRecord int = 0
+var firstMonthRecord int = 0
 
 type Config struct {
 	PORT  string `toml:"port"`
@@ -125,6 +130,12 @@ func getRecords(w http.ResponseWriter, r *http.Request, t RecordType) {
 	to, err := strconv.Atoi(r.FormValue("to"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if (t == DayRecordType && to < firstDayRecord) ||
+		(t == WeekRecordType && to < firstWeekRecord) ||
+		(t == MonthRecordType && to < firstMonthRecord) {
+		w.Write([]byte(`{"num":-1,"records":null}`))
 		return
 	}
 
@@ -536,6 +547,33 @@ func main() {
 	if err != nil {
 		log.Panicln(err.Error())
 	}
+
+	row, err := db.Query("SELECT time FROM record_day order by time limit 1")
+	if err != nil {
+		log.Panicln(err.Error())
+	}
+	if row.Next() {
+		row.Scan(&firstDayRecord)
+	}
+	row.Close()
+
+	row, err = db.Query("SELECT time FROM record_week order by time limit 1")
+	if err != nil {
+		log.Panicln(err.Error())
+	}
+	if row.Next() {
+		row.Scan(&firstWeekRecord)
+	}
+	row.Close()
+
+	row, err = db.Query("SELECT time FROM record_month order by time limit 1")
+	if err != nil {
+		log.Panicln(err.Error())
+	}
+	if row.Next() {
+		row.Scan(&firstMonthRecord)
+	}
+	row.Close()
 
 	// GET		/day-record/{id}						getSingleRecord
 	// GET		/day-record/?from={time1}&to={time2}	getRecords
