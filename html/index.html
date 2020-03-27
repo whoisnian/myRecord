@@ -237,13 +237,13 @@ getRecords();
 
 function getMoreRecords() {
   if(record_type == "day-record") {
-    fromDate.setDate(fromDate.getDate()-num);
+    fromDate.setDate(fromDate.getDate()-num-1);
     toDate.setDate(toDate.getDate()-num-1);
   } else if(record_type == "week-record") {
-    fromDate.setDate(fromDate.getDate()-num);
+    fromDate.setDate(fromDate.getDate()-num-7);
     toDate.setDate(toDate.getDate()-num-7);
   } else if(record_type == "month-record") {
-    fromDate.setDate(fromDate.getDate()-num);
+    fromDate.setDate(fromDate.getDate()-num-30);
     toDate.setDate(toDate.getDate()-num-30);
   }
   getRecords();
@@ -335,36 +335,30 @@ function getISOWeek(d) {
 
 window.onscroll = throttle(watchscroll, 200);
 function throttle(fn, mustRun = 500) {
-  const timer = null;
   var timeoutFn = null;
-  let previous = null;
+  let previous = Date.now();
   return function() {
-    const now = new Date();
-    const context = this;
-    const args = arguments;
-    if (!previous){
-      previous = now;
-    }
+    const now = Date.now();
     const remaining = now - previous;
     clearTimeout(timeoutFn);
     if (mustRun && remaining >= mustRun) {
-      fn.apply(context, args);
-      previous = now;
+      fn();
+      previous = Date.now();
     } else {
-      timeoutFn = window.setTimeout(fn.apply(context, args), mustRun);
+      timeoutFn = setTimeout(fn, mustRun);
     }
   }
 }
 function watchscroll() {
   if(window.scrollY + window.innerHeight > document.body.offsetHeight) {
     if(record_type == "day-record") {
-      fromDate.setDate(fromDate.getDate()-num);
+      fromDate.setDate(fromDate.getDate()-num-1);
       toDate.setDate(toDate.getDate()-num-1);
     } else if(record_type == "week-record") {
-      fromDate.setDate(fromDate.getDate()-num);
+      fromDate.setDate(fromDate.getDate()-num-7);
       toDate.setDate(toDate.getDate()-num-7);
     } else if(record_type == "month-record") {
-      fromDate.setDate(fromDate.getDate()-num);
+      fromDate.setDate(fromDate.getDate()-num-30);
       toDate.setDate(toDate.getDate()-num-30);
     }
     getRecords();
