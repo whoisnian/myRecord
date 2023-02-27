@@ -1,2 +1,0 @@
-# myRecord
-Record my life.
