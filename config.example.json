@@ -1,0 +1,7 @@
+{
+  "Debug": false,
+  "Version": false,
+  "CreateTable": false,
+  "ListenAddr": "127.0.0.1:9000",
+  "DatabaseURI": "postgresql://postgres@127.0.0.1/record"
+}
