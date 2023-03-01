@@ -2,6 +2,18 @@
 
 ## Development
 
+### run locally
+```sh
+docker run -d \
+  --name pg-dev \
+  -e POSTGRES_PASSWORD=c7u0lOx7cmKfNx5m \
+  -e POSTGRES_DB=record \
+  -p 127.0.0.1:5432:5432 \
+  postgres:15-bullseye
+
+go run main.go -db postgresql://postgres:c7u0lOx7cmKfNx5m@127.0.0.1/record
+```
+
 ### gitmoji
 [https://gitmoji.dev](https://gitmoji.dev)
 
