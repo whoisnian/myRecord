@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/whoisnian/glb/config"
 	"github.com/whoisnian/glb/logger"
 	"github.com/whoisnian/glb/util/osutil"
@@ -16,6 +18,19 @@ func main() {
 		logger.Fatal(err)
 	}
 	logger.SetDebug(global.CFG.Debug)
+	logger.Info("Config: ", global.CFG)
+
+	global.Pool, err = pgxpool.New(context.Background(), global.CFG.DatabaseURI)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	defer global.Pool.Close()
+
+	err = global.Pool.Ping(context.Background())
+	if err != nil {
+		logger.Fatal(err)
+	}
+	logger.Info("Connect to database successfully")
 
 	go func() {
 		mux := router.Init()
