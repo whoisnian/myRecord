@@ -1,5 +1,13 @@
 package global
 
+import (
+	"encoding/json"
+
+	"github.com/whoisnian/glb/logger"
+)
+
+var CFG *Config
+
 type Config struct {
 	Debug bool `flag:"d,false,Enable debug output"`
 
@@ -10,4 +18,11 @@ type Config struct {
 	DatabaseURI string `flag:"db,postgresql://postgres@127.0.0.1/record,PostgreSQL database connection URI"`
 }
 
-var CFG Config
+func (cfg Config) Json() string {
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		logger.Error(err)
+		return "{}"
+	}
+	return string(data)
+}
