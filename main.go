@@ -6,20 +6,20 @@ import (
 	"github.com/whoisnian/glb/logger"
 	"github.com/whoisnian/glb/util/osutil"
 	"github.com/whoisnian/myRecord/global"
-	"github.com/whoisnian/myRecord/initializers"
-	"github.com/whoisnian/myRecord/routes"
+	"github.com/whoisnian/myRecord/initializer"
+	"github.com/whoisnian/myRecord/route"
 )
 
 func main() {
-	global.CFG = initializers.SetupConfig()
+	global.CFG = initializer.SetupConfig()
 	logger.Info("Config: ", global.CFG.Json())
 
-	global.Pool = initializers.SetupPostgres()
+	global.Pool = initializer.SetupPostgres()
 	defer global.Pool.Close()
 	logger.Info("Connect to postgresql successfully")
 
 	go func() {
-		mux := routes.SetupRouter()
+		mux := route.SetupRouter()
 		logger.Info("Service httpd started: <http://", global.CFG.ListenAddr, ">")
 		if err := http.ListenAndServe(global.CFG.ListenAddr, logger.Req(logger.Recovery(mux))); err != nil {
 			logger.Fatal(err)
