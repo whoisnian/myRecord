@@ -14,6 +14,7 @@ func SetupPostgres() *pgxpool.Pool {
 		logger.Fatal(err)
 	}
 
+	logger.Debug("Test postgresql ping...")
 	err = pool.Ping(context.Background())
 	if err != nil {
 		logger.Fatal(err)

@@ -18,6 +18,12 @@ func main() {
 	defer global.Pool.Close()
 	logger.Info("Connect to postgresql successfully")
 
+	if global.CFG.CreateTable {
+		initializer.ApplySchema()
+		logger.Info("Apply schema successfully")
+		return
+	}
+
 	go func() {
 		mux := route.SetupRouter()
 		logger.Info("Service httpd started: <http://", global.CFG.ListenAddr, ">")
