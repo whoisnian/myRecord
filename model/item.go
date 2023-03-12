@@ -13,19 +13,24 @@ type Item struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-// TODO: auto generate
 func (*Item) tableName() string {
 	return "items"
 }
-func (*Item) fieldsNameAll() []string {
+func (*Item) pkeyName() string {
+	return "id"
+}
+func (*Item) fieldsName() []string {
 	return []string{"id", "type", "state", "content", "date", "created_at"}
 }
-func (*Item) fieldsNamePartial() []string {
+func (*Item) fieldsNameActive() []string { // Passive: "id", "created_at"
 	return []string{"type", "state", "content", "date"}
 }
-func (item *Item) fieldsPointerAll() []any {
+func (item *Item) pkeyPtr() any {
+	return &item.Id
+}
+func (item *Item) fieldsPtr() []any {
 	return []any{&item.Id, &item.Type, &item.State, &item.Content, &item.Date, &item.CreatedAt}
 }
-func (item *Item) fieldsPointerPartial() []any {
+func (item *Item) fieldsPtrActive() []any {
 	return []any{&item.Type, &item.State, &item.Content, &item.Date}
 }
