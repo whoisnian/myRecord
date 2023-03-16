@@ -45,14 +45,17 @@ func Find(obj descriptor) error {
 }
 
 func Update(obj descriptor) error {
-	sql := fmt.Sprintf("UPDATE %s SET (%s) = (%s) RETURNING %s",
+	cnt := len(obj.fieldsName())
+	sql := fmt.Sprintf("UPDATE %s SET (%s) = (%s) WHERE %s = %s RETURNING %s",
 		obj.tableName(),
 		strings.Join(obj.fieldsName(), ","),
-		posMark(1, len(obj.fieldsName())),
+		posMark(1, cnt),
+		obj.pkeyName(),
+		posMark(cnt+1, cnt+1),
 		strings.Join(obj.fieldsName(), ","),
 	)
 
-	row := global.Pool.QueryRow(context.Background(), sql, obj.fieldsPtr()...)
+	row := global.Pool.QueryRow(context.Background(), sql, append(obj.fieldsPtr(), obj.pkeyPtr())...)
 	return row.Scan(obj.fieldsPtr()...)
 }
 
@@ -78,8 +81,9 @@ const smallsString = " $0, $1, $2, $3, $4, $5, $6, $7, $8, $9," +
 	"$80,$81,$82,$83,$84,$85,$86,$87,$88,$89," +
 	"$90,$91,$92,$93,$94,$95,$96,$97,$98,$99,"
 
+// posMark(1, 3) = "$1, $2, $3"
 func posMark(from, to int) string {
-	if from <= 0 || from >= to {
+	if from <= 0 || from > to {
 		return ""
 	}
 	if to < nSmalls {
