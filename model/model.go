@@ -46,14 +46,24 @@ func Find(obj descriptor) error {
 
 func Update(obj descriptor) error {
 	cnt := len(obj.fieldsName())
-	sql := fmt.Sprintf("UPDATE %s SET (%s) = (%s) WHERE %s = %s RETURNING %s",
-		obj.tableName(),
-		strings.Join(obj.fieldsName(), ","),
-		posMark(1, cnt),
-		obj.pkeyName(),
-		posMark(cnt+1, cnt+1),
-		strings.Join(obj.fieldsName(), ","),
-	)
+	var sql string
+	if cnt == 1 {
+		sql = fmt.Sprintf("UPDATE %s SET %s = $1 WHERE %s = $2 RETURNING %s",
+			obj.tableName(),
+			obj.fieldsName()[0],
+			obj.pkeyName(),
+			obj.fieldsName()[0],
+		)
+	} else {
+		sql = fmt.Sprintf("UPDATE %s SET (%s) = (%s) WHERE %s = %s RETURNING %s",
+			obj.tableName(),
+			strings.Join(obj.fieldsName(), ","),
+			posMark(1, cnt),
+			obj.pkeyName(),
+			posMark(cnt+1, cnt+1),
+			strings.Join(obj.fieldsName(), ","),
+		)
+	}
 
 	row := global.Pool.QueryRow(context.Background(), sql, append(obj.fieldsPtr(), obj.pkeyPtr())...)
 	return row.Scan(obj.fieldsPtr()...)
