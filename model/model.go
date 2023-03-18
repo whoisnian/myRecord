@@ -19,6 +19,8 @@ type descriptor interface {
 	pkeyPtr() any
 	fieldsPtr() []any
 	fieldsPtrActive() []any
+
+	new() descriptor
 }
 
 func Create(obj descriptor) error {
