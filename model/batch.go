@@ -19,10 +19,12 @@ type Batch[T descriptor] struct {
 	pos int
 }
 
+// Usage: model.B[*model.Item]()
 func B[T descriptor]() *Batch[T] {
 	return &Batch[T]{pos: 1}
 }
 
+// Usage: model.B[*model.Item]().Where("id = $?", 1)
 func (b *Batch[T]) Where(sql string, args ...any) *Batch[T] {
 	b.conditions = append(b.conditions, sql)
 	b.arguments = append(b.arguments, args...)
@@ -52,6 +54,7 @@ func (b *Batch[T]) where() string {
 	return sb.String()
 }
 
+// Usage: model.B[*model.Item]().Create([]*model.Item{})
 func (b *Batch[T]) Create(objs []T) error {
 	if len(objs) < 1 {
 		return nil
@@ -69,6 +72,7 @@ func (b *Batch[T]) Create(objs []T) error {
 	return err
 }
 
+// Usage: model.B[*model.Item]().Find(&[]*model.Item{})
 func (b *Batch[T]) Find(objsp *[]T) error {
 	var sample T
 
@@ -97,6 +101,7 @@ func (b *Batch[T]) Find(objsp *[]T) error {
 	return rows.Err()
 }
 
+// Usage: model.B[*model.Item]().Update(model.M{})
 func (b *Batch[T]) Update(to M) error {
 	keys := make([]string, len(to))
 	values := make([]any, len(to))
@@ -129,6 +134,7 @@ func (b *Batch[T]) Update(to M) error {
 	return err
 }
 
+// Usage: model.B[*model.Item]().Remove()
 func (b *Batch[T]) Remove() error {
 	var sample T
 	sb := strings.Builder{}
