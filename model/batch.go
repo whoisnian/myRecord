@@ -12,19 +12,19 @@ import (
 
 type M map[string]any
 
-type Batch[T descriptor] struct {
+type Batch[T Descriptor] struct {
 	conditions []string
 	arguments  []any
 
 	pos int
 }
 
-// Usage: model.B[*model.Item]()
-func B[T descriptor]() *Batch[T] {
+// Usage: model.B[*item.Item]()
+func B[T Descriptor]() *Batch[T] {
 	return &Batch[T]{pos: 1}
 }
 
-// Usage: model.B[*model.Item]().Where("id = $?", 1)
+// Usage: model.B[*item.Item]().Where("id = $?", 1)
 func (b *Batch[T]) Where(sql string, args ...any) *Batch[T] {
 	b.conditions = append(b.conditions, sql)
 	b.arguments = append(b.arguments, args...)
@@ -54,7 +54,7 @@ func (b *Batch[T]) where() string {
 	return sb.String()
 }
 
-// Usage: model.B[*model.Item]().Create([]*model.Item{})
+// Usage: model.B[*item.Item]().Create([]*item.Item{})
 func (b *Batch[T]) Create(objs []T) error {
 	if len(objs) < 1 {
 		return nil
@@ -63,23 +63,23 @@ func (b *Batch[T]) Create(objs []T) error {
 	var sample T
 	_, err := global.Pool.CopyFrom(
 		context.Background(),
-		pgx.Identifier{sample.tableName()},
-		sample.fieldsNameActive(),
+		pgx.Identifier{sample.TableName()},
+		sample.FieldsNameActive(),
 		pgx.CopyFromSlice(len(objs), func(i int) ([]any, error) {
-			return objs[i].fieldsPtrActive(), nil
+			return objs[i].FieldsPtrActive(), nil
 		}),
 	)
 	return err
 }
 
-// Usage: model.B[*model.Item]().Find(&[]*model.Item{})
+// Usage: model.B[*item.Item]().Find(&[]*item.Item{})
 func (b *Batch[T]) Find(objsp *[]T) error {
 	var sample T
 
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("SELECT %s FROM %s",
-		strings.Join(sample.fieldsName(), ","),
-		sample.tableName(),
+		strings.Join(sample.FieldsName(), ","),
+		sample.TableName(),
 	))
 	sb.WriteString(b.where())
 
@@ -91,8 +91,8 @@ func (b *Batch[T]) Find(objsp *[]T) error {
 
 	var factory T
 	for rows.Next() {
-		obj := factory.new().(T)
-		err = rows.Scan(obj.fieldsPtr()...)
+		obj := factory.New().(T)
+		err = rows.Scan(obj.FieldsPtr()...)
 		if err != nil {
 			return err
 		}
@@ -101,7 +101,7 @@ func (b *Batch[T]) Find(objsp *[]T) error {
 	return rows.Err()
 }
 
-// Usage: model.B[*model.Item]().Update(model.M{})
+// Usage: model.B[*item.Item]().Update(model.M{})
 func (b *Batch[T]) Update(to M) error {
 	keys := make([]string, len(to))
 	values := make([]any, len(to))
@@ -117,12 +117,12 @@ func (b *Batch[T]) Update(to M) error {
 	sb := strings.Builder{}
 	if len(to) == 1 {
 		sb.WriteString(fmt.Sprintf("UPDATE %s SET %s = $1",
-			sample.tableName(),
+			sample.TableName(),
 			keys[0],
 		))
 	} else {
 		sb.WriteString(fmt.Sprintf("UPDATE %s SET (%s) = (%s)",
-			sample.tableName(),
+			sample.TableName(),
 			strings.Join(keys, ","),
 			posMark(1, len(to)),
 		))
@@ -134,11 +134,11 @@ func (b *Batch[T]) Update(to M) error {
 	return err
 }
 
-// Usage: model.B[*model.Item]().Remove()
+// Usage: model.B[*item.Item]().Remove()
 func (b *Batch[T]) Remove() error {
 	var sample T
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("DELETE FROM %s", sample.tableName()))
+	sb.WriteString(fmt.Sprintf("DELETE FROM %s", sample.TableName()))
 	sb.WriteString(b.where())
 
 	_, err := global.Pool.Exec(context.Background(), sb.String(), b.arguments...)
