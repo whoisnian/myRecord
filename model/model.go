@@ -9,78 +9,78 @@ import (
 	"github.com/whoisnian/myRecord/global"
 )
 
-type descriptor interface {
-	tableName() string
+type Descriptor interface {
+	TableName() string
 
-	pkeyName() string
-	fieldsName() []string
-	fieldsNameActive() []string
+	PkeyName() string
+	FieldsName() []string
+	FieldsNameActive() []string
 
-	pkeyPtr() any
-	fieldsPtr() []any
-	fieldsPtrActive() []any
+	PkeyPtr() any
+	FieldsPtr() []any
+	FieldsPtrActive() []any
 
-	new() descriptor
+	New() Descriptor
 }
 
-// Usage: model.Create(&Item{})
-func Create(obj descriptor) error {
+// Usage: model.Create(&item.Item{})
+func Create(obj Descriptor) error {
 	sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) RETURNING %s",
-		obj.tableName(),
-		strings.Join(obj.fieldsNameActive(), ","),
-		posMark(1, len(obj.fieldsNameActive())),
-		strings.Join(obj.fieldsName(), ","),
+		obj.TableName(),
+		strings.Join(obj.FieldsNameActive(), ","),
+		posMark(1, len(obj.FieldsNameActive())),
+		strings.Join(obj.FieldsName(), ","),
 	)
 
-	row := global.Pool.QueryRow(context.Background(), sql, obj.fieldsPtrActive()...)
-	return row.Scan(obj.fieldsPtr()...)
+	row := global.Pool.QueryRow(context.Background(), sql, obj.FieldsPtrActive()...)
+	return row.Scan(obj.FieldsPtr()...)
 }
 
-// Usage: model.Find(&Item{})
-func Find(obj descriptor) error {
+// Usage: model.Find(&item.Item{})
+func Find(obj Descriptor) error {
 	sql := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1",
-		strings.Join(obj.fieldsName(), ","),
-		obj.tableName(),
-		obj.pkeyName(),
+		strings.Join(obj.FieldsName(), ","),
+		obj.TableName(),
+		obj.PkeyName(),
 	)
 
-	row := global.Pool.QueryRow(context.Background(), sql, obj.pkeyPtr())
-	return row.Scan(obj.fieldsPtr()...)
+	row := global.Pool.QueryRow(context.Background(), sql, obj.PkeyPtr())
+	return row.Scan(obj.FieldsPtr()...)
 }
 
-// Usage: model.Update(&Item{})
-func Update(obj descriptor) error {
-	cnt := len(obj.fieldsName())
+// Usage: model.Update(&item.Item{})
+func Update(obj Descriptor) error {
+	cnt := len(obj.FieldsName())
 	var sql string
 	if cnt == 1 {
 		sql = fmt.Sprintf("UPDATE %s SET %s = $1 WHERE %s = $2 RETURNING %s",
-			obj.tableName(),
-			obj.fieldsName()[0],
-			obj.pkeyName(),
-			obj.fieldsName()[0],
+			obj.TableName(),
+			obj.FieldsName()[0],
+			obj.PkeyName(),
+			obj.FieldsName()[0],
 		)
 	} else {
 		sql = fmt.Sprintf("UPDATE %s SET (%s) = (%s) WHERE %s = %s RETURNING %s",
-			obj.tableName(),
-			strings.Join(obj.fieldsName(), ","),
+			obj.TableName(),
+			strings.Join(obj.FieldsName(), ","),
 			posMark(1, cnt),
-			obj.pkeyName(),
+			obj.PkeyName(),
 			posMark(cnt+1, cnt+1),
-			strings.Join(obj.fieldsName(), ","),
+			strings.Join(obj.FieldsName(), ","),
 		)
 	}
 
-	row := global.Pool.QueryRow(context.Background(), sql, append(obj.fieldsPtr(), obj.pkeyPtr())...)
-	return row.Scan(obj.fieldsPtr()...)
+	row := global.Pool.QueryRow(context.Background(), sql, append(obj.FieldsPtr(), obj.PkeyPtr())...)
+	return row.Scan(obj.FieldsPtr()...)
 }
 
-// Usage: model.Remove(&Item{})
-func Remove(obj descriptor) error {
+// Usage: model.Remove(&item.Item{})
+func Remove(obj Descriptor) error {
 	sql := fmt.Sprintf("DELETE FROM %s WHERE %s = $1",
-		obj.tableName(),
-		obj.pkeyName(),
+		obj.TableName(),
+		obj.PkeyName(),
 	)
-	_, err := global.Pool.Exec(context.Background(), sql, obj.pkeyPtr())
+	_, err := global.Pool.Exec(context.Background(), sql, obj.PkeyPtr())
 	return err
 }
 
