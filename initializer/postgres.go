@@ -9,7 +9,16 @@ import (
 )
 
 func SetupPostgres() *pgxpool.Pool {
-	pool, err := pgxpool.New(context.Background(), global.CFG.DatabaseURI)
+	config, err := pgxpool.ParseConfig(global.CFG.DatabaseURI)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	if logger.IsDebug() {
+		config.ConnConfig.Tracer = global.PoolTracer
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		logger.Fatal(err)
 	}
