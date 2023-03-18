@@ -2,9 +2,7 @@ package model
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -12,31 +10,26 @@ import (
 	"github.com/whoisnian/myRecord/global"
 )
 
-// model.B().Create([]T) error
-// model.B().Where(M).Find(*[]T) error
-// model.B().Where(M).Update([]T, M) error
-// model.B().Where(M).Remove([]T) error
-
 type M map[string]any
 
-type Batch struct {
+type Batch[T descriptor] struct {
 	conditions []string
 	arguments  []any
 
 	pos int
 }
 
-func B() *Batch {
-	return &Batch{pos: 1}
+func B[T descriptor]() *Batch[T] {
+	return &Batch[T]{pos: 1}
 }
 
-func (b *Batch) Where(sql string, args ...any) *Batch {
+func (b *Batch[T]) Where(sql string, args ...any) *Batch[T] {
 	b.conditions = append(b.conditions, sql)
 	b.arguments = append(b.arguments, args...)
 	return b
 }
 
-func (b *Batch) where() string {
+func (b *Batch[T]) where() string {
 	sb := strings.Builder{}
 	if len(b.conditions) > 0 {
 		sb.WriteString(" WHERE ")
@@ -59,46 +52,25 @@ func (b *Batch) where() string {
 	return sb.String()
 }
 
-func (b *Batch) Create(objs any) error {
-	sVal := reflect.ValueOf(objs)
-	if sVal.Kind() != reflect.Slice {
-		return errors.New("model: Batch.Create() want slice as input argument, but got " + sVal.Kind().String())
-	}
-	if sVal.Len() < 1 {
+func (b *Batch[T]) Create(objs []T) error {
+	if len(objs) < 1 {
 		return nil
 	}
 
-	objType := sVal.Type().Elem()
-	sample, ok := reflect.New(objType).Interface().(descriptor)
-	if !ok {
-		return errors.New("model: Batch.Create() pointer to " + objType.String() + " does not implement model.descriptor")
-	}
+	var sample T
 	_, err := global.Pool.CopyFrom(
 		context.Background(),
 		pgx.Identifier{sample.tableName()},
 		sample.fieldsNameActive(),
-		pgx.CopyFromSlice(sVal.Len(), func(i int) ([]any, error) {
-			return sVal.Index(i).Addr().Interface().(descriptor).fieldsPtrActive(), nil
+		pgx.CopyFromSlice(len(objs), func(i int) ([]any, error) {
+			return objs[i].fieldsPtrActive(), nil
 		}),
 	)
 	return err
 }
 
-func (b *Batch) Find(objsp any) error {
-	spVal := reflect.ValueOf(objsp)
-	if spVal.Kind() != reflect.Pointer {
-		return errors.New("model: Batch.Find() want pointer as input argument, but got " + spVal.Kind().String())
-	}
-	sVal := spVal.Elem()
-	if sVal.Kind() != reflect.Slice {
-		return errors.New("model: Batch.Find() want pointer to slice, but got pointer to " + sVal.Kind().String())
-	}
-
-	objType := sVal.Type().Elem()
-	sample, ok := reflect.New(objType).Interface().(descriptor)
-	if !ok {
-		return errors.New("model: Batch.Find() pointer to " + objType.String() + " does not implement model.descriptor")
-	}
+func (b *Batch[T]) Find(objsp *[]T) error {
+	var sample T
 
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("SELECT %s FROM %s",
@@ -113,18 +85,19 @@ func (b *Batch) Find(objsp any) error {
 	}
 	defer rows.Close()
 
+	var factory T
 	for rows.Next() {
-		v := reflect.New(objType)
-		err = rows.Scan(v.Interface().(descriptor).fieldsPtr()...)
+		obj := factory.new().(T)
+		err = rows.Scan(obj.fieldsPtr()...)
 		if err != nil {
 			return err
 		}
-		sVal.Set(reflect.Append(sVal, v.Elem()))
+		*objsp = append(*objsp, obj)
 	}
 	return rows.Err()
 }
 
-func (b *Batch) Update(obj descriptor, to M) error {
+func (b *Batch[T]) Update(to M) error {
 	keys := make([]string, len(to))
 	values := make([]any, len(to))
 
@@ -135,15 +108,16 @@ func (b *Batch) Update(obj descriptor, to M) error {
 		i++
 	}
 
+	var sample T
 	sb := strings.Builder{}
 	if len(to) == 1 {
 		sb.WriteString(fmt.Sprintf("UPDATE %s SET %s = $1",
-			obj.tableName(),
+			sample.tableName(),
 			keys[0],
 		))
 	} else {
 		sb.WriteString(fmt.Sprintf("UPDATE %s SET (%s) = (%s)",
-			obj.tableName(),
+			sample.tableName(),
 			strings.Join(keys, ","),
 			posMark(1, len(to)),
 		))
@@ -155,9 +129,10 @@ func (b *Batch) Update(obj descriptor, to M) error {
 	return err
 }
 
-func (b *Batch) Remove(obj descriptor) error {
+func (b *Batch[T]) Remove() error {
+	var sample T
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("DELETE FROM %s", obj.tableName()))
+	sb.WriteString(fmt.Sprintf("DELETE FROM %s", sample.tableName()))
 	sb.WriteString(b.where())
 
 	_, err := global.Pool.Exec(context.Background(), sb.String(), b.arguments...)

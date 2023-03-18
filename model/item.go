@@ -34,3 +34,6 @@ func (item *Item) fieldsPtr() []any {
 func (item *Item) fieldsPtrActive() []any {
 	return []any{&item.Type, &item.State, &item.Content, &item.Date}
 }
+func (item *Item) new() descriptor {
+	return &Item{}
+}
