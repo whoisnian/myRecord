@@ -23,6 +23,7 @@ type descriptor interface {
 	new() descriptor
 }
 
+// Usage: model.Create(&Item{})
 func Create(obj descriptor) error {
 	sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) RETURNING %s",
 		obj.tableName(),
@@ -35,6 +36,7 @@ func Create(obj descriptor) error {
 	return row.Scan(obj.fieldsPtr()...)
 }
 
+// Usage: model.Find(&Item{})
 func Find(obj descriptor) error {
 	sql := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1",
 		strings.Join(obj.fieldsName(), ","),
@@ -46,6 +48,7 @@ func Find(obj descriptor) error {
 	return row.Scan(obj.fieldsPtr()...)
 }
 
+// Usage: model.Update(&Item{})
 func Update(obj descriptor) error {
 	cnt := len(obj.fieldsName())
 	var sql string
@@ -71,6 +74,7 @@ func Update(obj descriptor) error {
 	return row.Scan(obj.fieldsPtr()...)
 }
 
+// Usage: model.Remove(&Item{})
 func Remove(obj descriptor) error {
 	sql := fmt.Sprintf("DELETE FROM %s WHERE %s = $1",
 		obj.tableName(),
