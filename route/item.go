@@ -13,7 +13,7 @@ import (
 
 func listItemHandler(store *httpd.Store) {
 	result := []*item.Item{}
-	if err := model.B[*item.Item]().Where("type = $?", item.TypeTodo).Where("state != $?", item.StateDeleted).Find(&result); err != nil {
+	if err := model.B[*item.Item]().Where("type = $?", item.TypeFlag).Where("state != $?", item.StateDeleted).Find(&result); err != nil {
 		logger.Panic(err)
 	}
 	store.RespondJson(result)
