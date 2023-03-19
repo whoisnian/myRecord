@@ -41,7 +41,7 @@ func (it *Item) New() model.Descriptor {
 }
 
 const (
-	TypeTodo int32 = iota
+	TypeFlag int32 = iota
 	TypeHistoryDay
 	TypeHistoryWeek
 	TypeHistoryMonth
@@ -49,7 +49,7 @@ const (
 
 const (
 	StateDeleted int32 = iota
-	StateToBeDone
+	StatePending
 	StateFinished
 	StateAbandoned
 )
