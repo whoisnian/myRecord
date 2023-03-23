@@ -36,6 +36,7 @@
       display: flex;
       align-items: baseline;
       flex-direction: row;
+      cursor: pointer;
     }
 
     .record {
@@ -130,81 +131,155 @@
 <body class="main" ontouchstart>
   <div class="flag">
     <h2>Flag</h2>
-    <ul>
-      <li>
-        <label>
-          <input type="checkbox" autocomplete="off">
-          <span>Conubia ut dui dignissim sit leo a pulvinar volutpat parturient</span>
-        </label>
-      </li>
-      <li>
-        <label>
-          <input type="checkbox" autocomplete="off">
-          <span>Eleifend laoreet tellus quis fusce</span>
-        </label>
-      </li>
-      <li>
-        <label>
-          <input type="checkbox" autocomplete="off">
-          <span>Fringilla convallis quis ullamcorper augue interdum</span>
-        </label>
-      </li>
-    </ul>
-    <ul>
-      <li>
-        <label>
-          <input type="checkbox" autocomplete="off" checked="">
-          <span>Velit morbi commodo tincidunt erat neque lacus felis commodo cursus</span>
-        </label>
-      </li>
-      <li>
-        <label>
-          <input type="checkbox" autocomplete="off" checked="">
-          <span>Nisi himenaeos, eget neque penatibus mus sagittis suspendisse in varius</span>
-        </label>
-      </li>
-      <li>
-        <label>
-          <input type="checkbox" autocomplete="off" checked="">
-          <span>Consequat imperdiet sagittis tincidunt</span>
-        </label>
-      </li>
-    </ul>
+    <ul id="flag_pending"></ul>
+    <ul id="flag_finished"></ul>
   </div>
   <div class="record">
     <h2>Record</h2>
-    <ul>
-      <li>
-        <div class="record_time">2023-03-20</div>
-        <div class="record_content">
-          Convallis feugiat tempor duis lorem a metus parturient.<br />
-          Viverra id habitasse integer lobortis quisque interdum adipiscing.<br />
-          Cras tempor potenti venenatis orci litorabibendum malesuada ligula lobortis molestie.
-        </div>
-      </li>
-      <li>
-        <div class="record_time">2023-03-19</div>
-        <div class="record_content">
-          Egestas nascetur platea nascetur tortor ligula sodales ultricies class posuere in nec ultricies lobortis
-          potenti natoque arcu fusce erat.
-        </div>
-      </li>
-      <li>
-        <div class="record_time">2023-03-18</div>
-        <div class="record_content">
-          Imperdiet sociosqu ante leo habitant dis fringilla phasellus.<br />
-          Integer platea integer id etiam maecenas platea.<br />
-          Ad blandit, dolor dolor donec ligula ridiculus massa sapien ullamcorper.<br />
-          Scelerisque feugiat nibh nulla dictum ultricies inceptos potenti vivamus massa magnis a.
-        </div>
-      </li>
-    </ul>
+    <ul id="record"></ul>
   </div>
   <div class="record_type">
     <div id="type_button1" class="type_button">周</div>
     <div id="type_button2" class="type_button">月</div>
   </div>
-  <div id="scrollToTop" class="scroll_button">上</div>
+  <div id="scroll_to_top" class="scroll_button">上</div>
+  <script>
+    (async () => {
+      // ========================= constant =========================
+      const TYPE = {
+        Flag: 0,
+        HistoryDay: 1,
+        HistoryWeek: 2,
+        HistoryMonth: 3
+      }
+      const STEP = [
+        30 * 24 * 60 * 60 * 1000, // 30 days finished flags
+        15 * 24 * 60 * 60 * 1000, // 15 days history-day
+        30 * 24 * 60 * 60 * 1000, // 30 days history-week
+        60 * 24 * 60 * 60 * 1000  // 30 days history-month
+      ]
+      const STATE = {
+        Deleted: 0,
+        Pending: 1,
+        Finished: 2,
+        Abandoned: 3
+      }
+
+      // ========================= global =========================
+      const store = {
+        recordType: TYPE.HistoryDay
+      }
+      const timeCursor = {
+        from: Date.now() - STEP[store.recordType],
+        to: Date.now()
+      }
+
+      // ========================= utility =========================
+      const ESCAPE = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&#34;',
+        '\'': '&#39;',
+        ' ': '&nbsp;',
+        '\n': '<br />'
+      }
+      const html2Escape = str => str.replace(/[<>&"' \n]/g, ch => ESCAPE[ch])
+
+      const throttle = (fn, wait) => {
+        let previous = Date.now()
+        return async (event) => {
+          if (Date.now() >= previous + wait) {
+            await fn(event)
+            previous = Date.now()
+          }
+        }
+      }
+
+      // ========================= scroll_button =========================
+      const scrollButton = document.getElementById('scroll_to_top')
+      scrollButton.onclick = () => {
+        window.scroll({ top: 0, left: 0, behavior: 'smooth' })
+      }
+
+      // ========================= flag =========================
+      const flagPendingUl = document.getElementById("flag_pending")
+      const pendingResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Pending })}`)
+      if (!pendingResp.ok) { throw new Error(pendingResp.statusText) }
+      (await pendingResp.json()).forEach(flag => {
+        const li = document.createElement('li')
+        li.innerHTML = `<label><input type="checkbox" autocomplete="off"><span>${html2Escape(flag.Content)}</span></label>`
+        li.firstChild.firstChild.onchange = async ({ target: { checked } }) => {
+          await fetch(`/api/items/${flag.Id}`, { method: 'PUT', body: JSON.stringify({ ...flag, State: checked ? STATE.Finished : STATE.Pending }) })
+        }
+        flagPendingUl.appendChild(li)
+      })
+
+      const flagFinishedUl = document.getElementById("flag_finished")
+      const finishedResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Finished, from: Date.now() - STEP[TYPE.Flag], to: Date.now() })}`)
+      if (!finishedResp.ok) { throw new Error(finishedResp.statusText) }
+      (await finishedResp.json()).forEach(flag => {
+        const li = document.createElement('li')
+        li.innerHTML = `<label><input type="checkbox" autocomplete="off" checked=""><span>${html2Escape(flag.Content)}</span></label>`
+        li.firstChild.firstChild.onchange = async ({ target: { checked } }) => {
+          await fetch(`/api/items/${flag.Id}`, { method: 'PUT', body: JSON.stringify({ ...flag, State: checked ? STATE.Finished : STATE.Pending }) })
+        }
+        flagFinishedUl.appendChild(li)
+      })
+
+      // ========================= record =========================
+      const recordUl = document.getElementById("record")
+      const loadRecords = async () => {
+        const recordResp = await fetch(`/api/items?${new URLSearchParams({ type: store.recordType, ...timeCursor })}`)
+        if (!recordResp.ok) { throw new Error(recordResp.statusText) }
+        (await recordResp.json()).forEach(record => {
+          const date = new Date(record.Date)
+          const dateStr = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
+
+          const li = document.createElement('li')
+          li.innerHTML = `<div class="record_time">${dateStr}</div><div class="record_content">${html2Escape(record.Content)}</div>`
+          recordUl.appendChild(li)
+        })
+      }
+
+      // ========================= record_type =========================
+      const updateTypeBtn = async (cur) => {
+        const text = ['日', '周', '月'].filter((_, i) => i !== cur - 1)
+        document.getElementById("type_button1").innerHTML = text[0]
+        document.getElementById("type_button2").innerHTML = text[1]
+
+        timeCursor.to = Date.now()
+        timeCursor.from = Date.now() - STEP[cur]
+        recordUl.replaceChildren()
+        await loadRecords()
+      }
+      document.getElementById("type_button1").onclick = async () => {
+        store.recordType = store.recordType === TYPE.HistoryDay ? TYPE.HistoryWeek : TYPE.HistoryDay
+        await updateTypeBtn(store.recordType)
+      }
+      document.getElementById("type_button2").onclick = async () => {
+        store.recordType = store.recordType === TYPE.HistoryMonth ? TYPE.HistoryWeek : TYPE.HistoryMonth
+        await updateTypeBtn(store.recordType)
+      }
+      await updateTypeBtn(store.recordType)
+
+      // ========================= onscroll =========================
+      window.onscroll = throttle(async () => {
+        if (window.scrollY + window.innerHeight > document.body.offsetHeight) {
+          timeCursor.to = timeCursor.from
+          timeCursor.from -= STEP[store.recordType]
+          await loadRecords()
+        }
+      }, 300)
+      document.onwheel = throttle(async (e) => {
+        if (e.deltaY > 0 && window.innerHeight > document.body.offsetHeight) {
+          timeCursor.to = timeCursor.from
+          timeCursor.from -= STEP[store.recordType]
+          await loadRecords()
+        }
+      }, 300)
+    })()
+  </script>
 </body>
 
 </html>

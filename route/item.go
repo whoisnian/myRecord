@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/whoisnian/glb/httpd"
 	"github.com/whoisnian/glb/logger"
@@ -12,8 +13,52 @@ import (
 )
 
 func listItemHandler(store *httpd.Store) {
+	Q := store.R.URL.Query()
+	qType := Q.Get("type")
+	qState := Q.Get("state")
+	qFrom := Q.Get("from")
+	qTo := Q.Get("to")
+
+	batch := model.B[*item.Item]()
+	if qType != "" {
+		if argType, err := strconv.ParseUint(qType, 10, 32); err == nil {
+			batch = batch.Where("type = $?", argType)
+		} else {
+			store.W.WriteHeader(http.StatusBadRequest)
+			store.W.Write([]byte(err.Error()))
+			return
+		}
+	}
+	if qState != "" {
+		if argState, err := strconv.ParseUint(qState, 10, 32); err == nil {
+			batch = batch.Where("state = $?", argState)
+		} else {
+			store.W.WriteHeader(http.StatusBadRequest)
+			store.W.Write([]byte(err.Error()))
+			return
+		}
+	}
+	if qFrom != "" {
+		if argFrom, err := strconv.ParseInt(qFrom, 10, 64); err == nil {
+			batch = batch.Where("date >= $?", time.UnixMilli(argFrom))
+		} else {
+			store.W.WriteHeader(http.StatusBadRequest)
+			store.W.Write([]byte(err.Error()))
+			return
+		}
+	}
+	if qTo != "" {
+		if argTo, err := strconv.ParseInt(qTo, 10, 64); err == nil {
+			batch = batch.Where("date < $?", time.UnixMilli(argTo))
+		} else {
+			store.W.WriteHeader(http.StatusBadRequest)
+			store.W.Write([]byte(err.Error()))
+			return
+		}
+	}
+
 	result := []*item.Item{}
-	if err := model.B[*item.Item]().Where("type = $?", item.TypeFlag).Where("state != $?", item.StateDeleted).Find(&result); err != nil {
+	if err := batch.Find(&result); err != nil {
 		logger.Panic(err)
 	}
 	store.RespondJson(result)
