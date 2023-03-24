@@ -45,6 +45,16 @@
       margin-left: 35%;
     }
 
+    .flag h2,
+    .record h2 {
+      display: inline-block;
+    }
+
+    .flag a,
+    .record a {
+      margin-left: 1em;
+    }
+
     @media (max-width: 48em) {
       .flag {
         width: 100%;
@@ -98,6 +108,15 @@
       top: 20px;
     }
 
+    .dialog {
+      border-radius: 8px;
+      border-width: 2px;
+    }
+
+    .dialog td {
+      padding: 3px 6px;
+    }
+
     .type_button {
       display: inline-block;
       border-width: 1px;
@@ -130,14 +149,48 @@
 
 <body class="main" ontouchstart>
   <div class="flag">
-    <h2>Flag</h2>
+    <h2>Flag</h2><a id="new_flag" href="#">new</a>
     <ul id="flag_pending"></ul>
     <ul id="flag_finished"></ul>
   </div>
+  <dialog id="new_flag_dialog" class="dialog">
+    <table>
+      <form method="dialog">
+        <tr>
+          <td><label for="new_flag_text">Content:</label></td>
+          <td><input type="text" id="new_flag_text" autocomplete="off" /></td>
+        </tr>
+        <tr>
+          <td><label for="new_flag_date">Date:</label></td>
+          <td><input type="date" id="new_flag_date" autocomplete="off" /></td>
+        </tr>
+        <tr>
+          <td><input type="submit" id="new_flag_submit" value="Submit" /></td>
+        </tr>
+      </form>
+    </table>
+  </dialog>
   <div class="record">
-    <h2>Record</h2>
+    <h2>Record</h2><a id="new_record" href="#">new</a>
     <ul id="record"></ul>
   </div>
+  <dialog id="new_record_dialog" class="dialog">
+    <table>
+      <form method="dialog">
+        <tr>
+          <td style="vertical-align:top"><label for="new_record_text">Content:</label></td>
+          <td><textarea id="new_record_text" rows="5" cols="30" autocomplete="off"></textarea></td>
+        </tr>
+        <tr>
+          <td><label for="new_record_date">Date:</label></td>
+          <td><input type="date" id="new_record_date" autocomplete="off" /></td>
+        </tr>
+        <tr>
+          <td><input type="submit" id="new_record_submit" value="Submit" /></td>
+        </tr>
+      </form>
+    </table>
+  </dialog>
   <div class="record_type">
     <div id="type_button1" class="type_button">周</div>
     <div id="type_button2" class="type_button">月</div>
@@ -227,6 +280,18 @@
         flagFinishedUl.appendChild(li)
       })
 
+      // ========================= new_flag =========================
+      document.getElementById("new_flag").onclick = () => {
+        document.getElementById("new_flag_date").valueAsDate = new Date()
+        document.getElementById("new_flag_dialog").showModal()
+      }
+      document.getElementById("new_flag_submit").onclick = async () => {
+        const content = document.getElementById("new_flag_text").value
+        const date = new Date(document.getElementById("new_flag_date").value)
+        if (!content || content.length === 0 || !date) return
+        await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: TYPE.Flag, State: STATE.Pending, Content: content, Date: date }) })
+      }
+
       // ========================= record =========================
       const recordUl = document.getElementById("record")
       const loadRecords = async () => {
@@ -240,6 +305,18 @@
           li.innerHTML = `<div class="record_time">${dateStr}</div><div class="record_content">${html2Escape(record.Content)}</div>`
           recordUl.appendChild(li)
         })
+      }
+
+      // ========================= new_record =========================
+      document.getElementById("new_record").onclick = () => {
+        document.getElementById("new_record_date").valueAsDate = new Date()
+        document.getElementById("new_record_dialog").showModal()
+      }
+      document.getElementById("new_record_submit").onclick = async () => {
+        const content = document.getElementById("new_record_text").value
+        const date = new Date(document.getElementById("new_record_date").value)
+        if (!content || content.length === 0 || !date) return
+        await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: store.recordType, State: STATE.Finished, Content: content, Date: date }) })
       }
 
       // ========================= record_type =========================
