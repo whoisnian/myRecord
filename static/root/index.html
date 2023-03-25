@@ -149,13 +149,13 @@
 
 <body class="main" ontouchstart>
   <div class="flag">
-    <h2>Flag</h2><a id="new_flag" href="#">new</a>
+    <h2>Flag</h2><a id="new_flag" href="javascript:void(0)">new</a>
     <ul id="flag_pending"></ul>
     <ul id="flag_finished"></ul>
   </div>
   <dialog id="new_flag_dialog" class="dialog">
     <table>
-      <form method="dialog">
+      <form id="new_flag_form" method="dialog">
         <tr>
           <td><label for="new_flag_text">Content:</label></td>
           <td><input type="text" id="new_flag_text" autocomplete="off" required="" /></td>
@@ -166,17 +166,18 @@
         </tr>
         <tr>
           <td><input type="submit" id="new_flag_submit" value="Submit" /></td>
+          <td><span id="new_flag_result"></span></td>
         </tr>
       </form>
     </table>
   </dialog>
   <div class="record">
-    <h2>Record</h2><a id="new_record" href="#">new</a>
+    <h2>Record</h2><a id="new_record" href="javascript:void(0)">new</a>
     <ul id="record"></ul>
   </div>
   <dialog id="new_record_dialog" class="dialog">
     <table>
-      <form method="dialog">
+      <form id="new_record_form" method="dialog">
         <tr>
           <td style="vertical-align:top"><label for="new_record_text">Content:</label></td>
           <td><textarea id="new_record_text" rows="5" cols="30" autocomplete="off" required=""></textarea></td>
@@ -187,6 +188,7 @@
         </tr>
         <tr>
           <td><input type="submit" id="new_record_submit" value="Submit" /></td>
+          <td><span id="new_record_result"></span></td>
         </tr>
       </form>
     </table>
@@ -220,11 +222,17 @@
 
       // ========================= global =========================
       const store = {
-        recordType: TYPE.HistoryDay
+        recordType: TYPE[window.location.hash.slice(1)] || TYPE.HistoryDay
       }
       const timeCursor = {
         from: Date.now() - STEP[store.recordType],
-        to: Date.now()
+        to: null
+      }
+      const getTimeCursor = () => {
+        const obj = {}
+        if (timeCursor.from) obj.from = timeCursor.from
+        if (timeCursor.to) obj.to = timeCursor.to
+        return obj
       }
 
       // ========================= utility =========================
@@ -238,6 +246,8 @@
         '\n': '<br />'
       }
       const html2Escape = str => str.replace(/[<>&"' \n]/g, ch => ESCAPE[ch])
+
+      const dateStr = (date) => `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
 
       const throttle = (fn, wait) => {
         let previous = Date.now()
@@ -269,7 +279,7 @@
       })
 
       const flagFinishedUl = document.getElementById('flag_finished')
-      const finishedResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Finished, from: Date.now() - STEP[TYPE.Flag], to: Date.now() })}`)
+      const finishedResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Finished, from: Date.now() - STEP[TYPE.Flag] })}`)
       if (!finishedResp.ok) { throw new Error(finishedResp.statusText) }
       (await finishedResp.json()).forEach(flag => {
         const li = document.createElement('li')
@@ -287,29 +297,30 @@
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           newFlagDialog.close()
       }
+      const newFlagResult = document.getElementById('new_flag_result')
       document.getElementById('new_flag').onclick = () => {
         const dateInput = document.getElementById('new_flag_date')
-        if (!dateInput.value) dateInput.valueAsDate = new Date()
+        if (!dateInput.value) dateInput.value = dateStr(new Date())
+        newFlagResult.innerText = ""
         newFlagDialog.showModal()
       }
       document.getElementById('new_flag_submit').onclick = async () => {
         const content = document.getElementById('new_flag_text').value
-        const date = new Date(document.getElementById('new_flag_date').value)
+        const date = document.getElementById('new_flag_date').valueAsDate
         if (!content || content.length === 0 || !date) return
-        await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: TYPE.Flag, State: STATE.Pending, Content: content, Date: date }) })
+        const resp = await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: TYPE.Flag, State: STATE.Pending, Content: content, Date: date }) })
+        if (resp.ok) window.location.reload()
+        else newFlagResult.innerText = await resp.text()
       }
 
       // ========================= record =========================
       const recordUl = document.getElementById('record')
       const loadRecords = async () => {
-        const recordResp = await fetch(`/api/items?${new URLSearchParams({ type: store.recordType, ...timeCursor })}`)
+        const recordResp = await fetch(`/api/items?${new URLSearchParams({ type: store.recordType, ...getTimeCursor() })}`)
         if (!recordResp.ok) { throw new Error(recordResp.statusText) }
         (await recordResp.json()).forEach(record => {
-          const date = new Date(record.Date)
-          const dateStr = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
-
           const li = document.createElement('li')
-          li.innerHTML = `<div class="record_time">${dateStr}</div><div class="record_content">${html2Escape(record.Content)}</div>`
+          li.innerHTML = `<div class="record_time">${dateStr(new Date(record.Date))}</div><div class="record_content">${html2Escape(record.Content)}</div>`
           recordUl.appendChild(li)
         })
       }
@@ -321,16 +332,21 @@
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           newRecordDialog.close()
       }
+      const newRecordResult = document.getElementById('new_record_result')
       document.getElementById('new_record').onclick = () => {
         const dateInput = document.getElementById('new_record_date')
-        if (!dateInput.value) dateInput.valueAsDate = new Date()
+        if (!dateInput.value) dateInput.value = dateStr(new Date())
+        newRecordResult.innerText = ""
         newRecordDialog.showModal()
       }
+      document.getElementById('new_record_form').onsubmit = (e) => { e.preventDefault() }
       document.getElementById('new_record_submit').onclick = async () => {
         const content = document.getElementById('new_record_text').value
-        const date = new Date(document.getElementById('new_record_date').value)
+        const date = document.getElementById('new_record_date').valueAsDate
         if (!content || content.length === 0 || !date) return
-        await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: store.recordType, State: STATE.Finished, Content: content, Date: date }) })
+        const resp = await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: store.recordType, State: STATE.Finished, Content: content, Date: date }) })
+        if (resp.ok) window.location.reload()
+        else newRecordResult.innerText = await resp.text()
       }
 
       // ========================= record_type =========================
@@ -338,8 +354,9 @@
         const text = ['日', '周', '月'].filter((_, i) => i !== cur - 1)
         document.getElementById('type_button1').innerHTML = text[0]
         document.getElementById('type_button2').innerHTML = text[1]
+        window.location.hash = `#History${['Day', 'Week', 'Month'][cur - 1]}`
 
-        timeCursor.to = Date.now()
+        timeCursor.to = null
         timeCursor.from = Date.now() - STEP[cur]
         recordUl.replaceChildren()
         await loadRecords()

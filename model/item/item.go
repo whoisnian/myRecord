@@ -1,8 +1,10 @@
 package item
 
 import (
+	"context"
 	"time"
 
+	"github.com/whoisnian/myRecord/global"
 	"github.com/whoisnian/myRecord/model"
 )
 
@@ -53,3 +55,25 @@ const (
 	StateFinished
 	StateAbandoned
 )
+
+func (it *Item) Exists() bool {
+	sql := "SELECT 1 FROM items WHERE type = $1 AND date >= $2 AND date <= $3 LIMIT 1"
+
+	var result int64
+	var st, ed time.Time
+	if it.Type == TypeHistoryDay {
+		st = time.Date(it.Date.Year(), it.Date.Month(), it.Date.Day(), 0, 0, 0, 0, it.Date.Location())
+		ed = st.Add(time.Hour*24 - 1)
+	} else if it.Type == TypeHistoryWeek {
+		weekStart := time.Date(1970, 1, 4, 0, 0, 0, 0, it.Date.Location()) // Sunday
+		st = weekStart.Add(it.Date.Sub(weekStart).Truncate(time.Hour * 24 * 7))
+		ed = st.Add(time.Hour*24*7 - 1)
+	} else if it.Type == TypeHistoryMonth {
+		st = time.Date(it.Date.Year(), it.Date.Month(), 1, 0, 0, 0, 0, it.Date.Location())
+		ed = st.AddDate(0, 1, 0).Add(-1)
+	} else {
+		return false
+	}
+	err := global.Pool.QueryRow(context.Background(), sql, it.Type, st, ed).Scan(&result)
+	return err == nil && result == 1
+}
