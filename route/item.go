@@ -71,6 +71,16 @@ func createItemHandler(store *httpd.Store) {
 		store.W.Write([]byte(err.Error()))
 		return
 	}
+	if result.Content == "" || result.Date.Unix() <= 0 {
+		store.W.WriteHeader(http.StatusBadRequest)
+		store.W.Write([]byte("Invalid content or date"))
+		return
+	}
+	if result.Exists() {
+		store.W.WriteHeader(http.StatusConflict)
+		store.W.Write([]byte("Item already exists"))
+		return
+	}
 	if err := model.Create(&result); err != nil {
 		logger.Panic(err)
 	}
