@@ -158,11 +158,11 @@
       <form method="dialog">
         <tr>
           <td><label for="new_flag_text">Content:</label></td>
-          <td><input type="text" id="new_flag_text" autocomplete="off" /></td>
+          <td><input type="text" id="new_flag_text" autocomplete="off" required="" /></td>
         </tr>
         <tr>
           <td><label for="new_flag_date">Date:</label></td>
-          <td><input type="date" id="new_flag_date" autocomplete="off" /></td>
+          <td><input type="date" id="new_flag_date" autocomplete="off" required="" /></td>
         </tr>
         <tr>
           <td><input type="submit" id="new_flag_submit" value="Submit" /></td>
@@ -179,11 +179,11 @@
       <form method="dialog">
         <tr>
           <td style="vertical-align:top"><label for="new_record_text">Content:</label></td>
-          <td><textarea id="new_record_text" rows="5" cols="30" autocomplete="off"></textarea></td>
+          <td><textarea id="new_record_text" rows="5" cols="30" autocomplete="off" required=""></textarea></td>
         </tr>
         <tr>
           <td><label for="new_record_date">Date:</label></td>
-          <td><input type="date" id="new_record_date" autocomplete="off" /></td>
+          <td><input type="date" id="new_record_date" autocomplete="off" required="" /></td>
         </tr>
         <tr>
           <td><input type="submit" id="new_record_submit" value="Submit" /></td>
@@ -256,7 +256,7 @@
       }
 
       // ========================= flag =========================
-      const flagPendingUl = document.getElementById("flag_pending")
+      const flagPendingUl = document.getElementById('flag_pending')
       const pendingResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Pending })}`)
       if (!pendingResp.ok) { throw new Error(pendingResp.statusText) }
       (await pendingResp.json()).forEach(flag => {
@@ -268,7 +268,7 @@
         flagPendingUl.appendChild(li)
       })
 
-      const flagFinishedUl = document.getElementById("flag_finished")
+      const flagFinishedUl = document.getElementById('flag_finished')
       const finishedResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Finished, from: Date.now() - STEP[TYPE.Flag], to: Date.now() })}`)
       if (!finishedResp.ok) { throw new Error(finishedResp.statusText) }
       (await finishedResp.json()).forEach(flag => {
@@ -281,19 +281,26 @@
       })
 
       // ========================= new_flag =========================
-      document.getElementById("new_flag").onclick = () => {
-        document.getElementById("new_flag_date").valueAsDate = new Date()
-        document.getElementById("new_flag_dialog").showModal()
+      const newFlagDialog = document.getElementById('new_flag_dialog')
+      newFlagDialog.onclick = (e) => {
+        const { left, top, height, width } = newFlagDialog.getBoundingClientRect()
+        if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
+          newFlagDialog.close()
       }
-      document.getElementById("new_flag_submit").onclick = async () => {
-        const content = document.getElementById("new_flag_text").value
-        const date = new Date(document.getElementById("new_flag_date").value)
+      document.getElementById('new_flag').onclick = () => {
+        const dateInput = document.getElementById('new_flag_date')
+        if (!dateInput.value) dateInput.valueAsDate = new Date()
+        newFlagDialog.showModal()
+      }
+      document.getElementById('new_flag_submit').onclick = async () => {
+        const content = document.getElementById('new_flag_text').value
+        const date = new Date(document.getElementById('new_flag_date').value)
         if (!content || content.length === 0 || !date) return
         await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: TYPE.Flag, State: STATE.Pending, Content: content, Date: date }) })
       }
 
       // ========================= record =========================
-      const recordUl = document.getElementById("record")
+      const recordUl = document.getElementById('record')
       const loadRecords = async () => {
         const recordResp = await fetch(`/api/items?${new URLSearchParams({ type: store.recordType, ...timeCursor })}`)
         if (!recordResp.ok) { throw new Error(recordResp.statusText) }
@@ -308,13 +315,20 @@
       }
 
       // ========================= new_record =========================
-      document.getElementById("new_record").onclick = () => {
-        document.getElementById("new_record_date").valueAsDate = new Date()
-        document.getElementById("new_record_dialog").showModal()
+      const newRecordDialog = document.getElementById('new_record_dialog')
+      newRecordDialog.onclick = (e) => {
+        const { left, top, height, width } = newRecordDialog.getBoundingClientRect()
+        if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
+          newRecordDialog.close()
       }
-      document.getElementById("new_record_submit").onclick = async () => {
-        const content = document.getElementById("new_record_text").value
-        const date = new Date(document.getElementById("new_record_date").value)
+      document.getElementById('new_record').onclick = () => {
+        const dateInput = document.getElementById('new_record_date')
+        if (!dateInput.value) dateInput.valueAsDate = new Date()
+        newRecordDialog.showModal()
+      }
+      document.getElementById('new_record_submit').onclick = async () => {
+        const content = document.getElementById('new_record_text').value
+        const date = new Date(document.getElementById('new_record_date').value)
         if (!content || content.length === 0 || !date) return
         await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: store.recordType, State: STATE.Finished, Content: content, Date: date }) })
       }
@@ -322,19 +336,19 @@
       // ========================= record_type =========================
       const updateTypeBtn = async (cur) => {
         const text = ['日', '周', '月'].filter((_, i) => i !== cur - 1)
-        document.getElementById("type_button1").innerHTML = text[0]
-        document.getElementById("type_button2").innerHTML = text[1]
+        document.getElementById('type_button1').innerHTML = text[0]
+        document.getElementById('type_button2').innerHTML = text[1]
 
         timeCursor.to = Date.now()
         timeCursor.from = Date.now() - STEP[cur]
         recordUl.replaceChildren()
         await loadRecords()
       }
-      document.getElementById("type_button1").onclick = async () => {
+      document.getElementById('type_button1').onclick = async () => {
         store.recordType = store.recordType === TYPE.HistoryDay ? TYPE.HistoryWeek : TYPE.HistoryDay
         await updateTypeBtn(store.recordType)
       }
-      document.getElementById("type_button2").onclick = async () => {
+      document.getElementById('type_button2').onclick = async () => {
         store.recordType = store.recordType === TYPE.HistoryMonth ? TYPE.HistoryWeek : TYPE.HistoryMonth
         await updateTypeBtn(store.recordType)
       }
