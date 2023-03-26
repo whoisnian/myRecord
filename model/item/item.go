@@ -53,11 +53,10 @@ const (
 	StateDeleted int32 = iota
 	StatePending
 	StateFinished
-	StateAbandoned
 )
 
 func (it *Item) Exists() bool {
-	sql := "SELECT 1 FROM items WHERE type = $1 AND date >= $2 AND date <= $3 LIMIT 1"
+	sql := "SELECT 1 FROM items WHERE id != $1 AND type = $2 AND state != $3 AND date >= $4 AND date <= $5 LIMIT 1"
 
 	var result int64
 	var st, ed time.Time
@@ -74,6 +73,6 @@ func (it *Item) Exists() bool {
 	} else {
 		return false
 	}
-	err := global.Pool.QueryRow(context.Background(), sql, it.Type, st, ed).Scan(&result)
+	err := global.Pool.QueryRow(context.Background(), sql, it.Id, it.Type, StateDeleted, st, ed).Scan(&result)
 	return err == nil && result == 1
 }

@@ -102,6 +102,11 @@ func updateItemHandler(store *httpd.Store) {
 		return
 	}
 	result.Id = id
+	if result.Exists() {
+		store.W.WriteHeader(http.StatusConflict)
+		store.W.Write([]byte("Item already exists"))
+		return
+	}
 	if err := model.Update(&result); err != nil {
 		logger.Panic(err)
 	}
