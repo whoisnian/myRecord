@@ -14,28 +14,24 @@
     }
 
     .flag {
+      display: flex;
+      flex-direction: column;
       width: 30%;
-      padding-right: 20px;
-      position: fixed;
       word-wrap: break-word;
       word-break: break-all;
     }
 
     .record {
+      display: flex;
+      flex-direction: column;
       width: 60%;
-      padding-right: 20px;
-      margin-left: 35%;
     }
 
     @media (max-width: 48em) {
-      .flag {
-        width: 100%;
-        position: static;
-      }
 
+      .flag,
       .record {
         width: 100%;
-        margin-left: 0;
       }
     }
 
@@ -149,7 +145,9 @@
 
 <body class="main" ontouchstart>
   <div class="flag">
-    <h2>Flag</h2><a id="new_flag" href="javascript:void(0)">new</a>
+    <div>
+      <h2>Flag</h2><a id="new_flag" href="javascript:void(0)">new</a>
+    </div>
     <ul id="flag_pending"></ul>
     <ul id="flag_finished"></ul>
   </div>
@@ -197,7 +195,9 @@
     </table>
   </dialog>
   <div class="record">
-    <h2>Record</h2><a id="new_record" href="javascript:void(0)">new</a>
+    <div>
+      <h2>Record</h2><a id="new_record" href="javascript:void(0)">new</a>
+    </div>
     <ul id="record"></ul>
   </div>
   <dialog id="new_record_dialog" class="dialog">
@@ -261,7 +261,7 @@
         30 * 24 * 60 * 60 * 1000, // 30 days finished flags
         15 * 24 * 60 * 60 * 1000, // 15 days history-day
         30 * 24 * 60 * 60 * 1000, // 30 days history-week
-        60 * 24 * 60 * 60 * 1000  // 30 days history-month
+        90 * 24 * 60 * 60 * 1000  // 90 days history-month
       ]
       const STATE = {
         Deleted: 0,
@@ -326,11 +326,13 @@
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           editFlagDialog.close()
       }
+      const editFlagText = document.getElementById('edit_flag_text')
+      const editFlagDate = document.getElementById('edit_flag_date')
       const editFlagResult = document.getElementById('edit_flag_result')
       document.getElementById('edit_flag_form').onsubmit = (e) => { e.preventDefault() }
       document.getElementById('edit_flag_update_submit').onclick = async () => {
-        const content = document.getElementById('edit_flag_text').value
-        const date = document.getElementById('edit_flag_date').valueAsDate
+        const content = editFlagText.value
+        const date = editFlagDate.valueAsDate
         if (!content || content.length === 0 || !date) return
         const resp = await fetch(`/api/items/${store.editingFlag.Id}`, { method: 'PUT', body: JSON.stringify({ ...store.editingFlag, Content: content, Date: date }) })
         if (resp.ok) window.location.reload()
@@ -355,9 +357,10 @@
         li.oncontextmenu = (e) => {
           e.preventDefault()
           store.editingFlag = flag
-          document.getElementById('edit_flag_text').value = flag.Content
-          document.getElementById('edit_flag_date').value = dateStr(new Date(flag.Date))
-          document.getElementById('edit_flag_dialog').showModal()
+          editFlagText.value = flag.Content
+          editFlagDate.value = dateStr(new Date(flag.Date))
+          editFlagResult.innerText = ""
+          editFlagDialog.showModal()
         }
         flagPendingUl.appendChild(li)
       })
@@ -371,6 +374,14 @@
         li.firstChild.firstChild.onchange = async ({ target: { checked } }) => {
           await fetch(`/api/items/${flag.Id}`, { method: 'PUT', body: JSON.stringify({ ...flag, State: checked ? STATE.Finished : STATE.Pending }) })
         }
+        li.oncontextmenu = (e) => {
+          e.preventDefault()
+          store.editingFlag = flag
+          editFlagText.value = flag.Content
+          editFlagDate.value = dateStr(new Date(flag.Date))
+          editFlagResult.innerText = ""
+          editFlagDialog.showModal()
+        }
         flagFinishedUl.appendChild(li)
       })
 
@@ -381,17 +392,18 @@
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           newFlagDialog.close()
       }
+      const newFlagText = document.getElementById('new_flag_text')
+      const newFlagDate = document.getElementById('new_flag_date')
       const newFlagResult = document.getElementById('new_flag_result')
       document.getElementById('new_flag').onclick = () => {
-        const dateInput = document.getElementById('new_flag_date')
-        if (!dateInput.value) dateInput.value = dateStr(new Date())
+        if (!newFlagDate.value) newFlagDate.value = dateStr(new Date())
         newFlagResult.innerText = ""
         newFlagDialog.showModal()
       }
       document.getElementById('new_flag_form').onsubmit = (e) => { e.preventDefault() }
       document.getElementById('new_flag_submit').onclick = async () => {
-        const content = document.getElementById('new_flag_text').value
-        const date = document.getElementById('new_flag_date').valueAsDate
+        const content = newFlagText.value
+        const date = newFlagDate.valueAsDate
         if (!content || content.length === 0 || !date) return
         const resp = await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: TYPE.Flag, State: STATE.Pending, Content: content, Date: date }) })
         if (resp.ok) window.location.reload()
@@ -405,11 +417,13 @@
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           editRecordDialog.close()
       }
+      const editRecordText = document.getElementById('edit_record_text')
+      const editRecordDate = document.getElementById('edit_record_date')
       const editRecordResult = document.getElementById('edit_record_result')
       document.getElementById('edit_record_form').onsubmit = (e) => { e.preventDefault() }
       document.getElementById('edit_record_update_submit').onclick = async () => {
-        const content = document.getElementById('edit_record_text').value
-        const date = document.getElementById('edit_record_date').valueAsDate
+        const content = editRecordText.value
+        const date = editRecordDate.valueAsDate
         if (!content || content.length === 0 || !date) return
         const resp = await fetch(`/api/items/${store.editingRecord.Id}`, { method: 'PUT', body: JSON.stringify({ ...store.editingRecord, Content: content, Date: date }) })
         if (resp.ok) window.location.reload()
@@ -432,9 +446,10 @@
           li.oncontextmenu = (e) => {
             e.preventDefault()
             store.editingRecord = record
-            document.getElementById('edit_record_text').value = record.Content
-            document.getElementById('edit_record_date').value = dateStr(new Date(record.Date))
-            document.getElementById('edit_record_dialog').showModal()
+            editRecordText.value = record.Content
+            editRecordDate.value = dateStr(new Date(record.Date))
+            editRecordResult.innerText = ""
+            editRecordDialog.showModal()
           }
           recordUl.appendChild(li)
         })
@@ -447,17 +462,18 @@
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           newRecordDialog.close()
       }
+      const newRecordText = document.getElementById('new_record_text')
+      const newRecordDate = document.getElementById('new_record_date')
       const newRecordResult = document.getElementById('new_record_result')
       document.getElementById('new_record').onclick = () => {
-        const dateInput = document.getElementById('new_record_date')
-        if (!dateInput.value) dateInput.value = dateStr(new Date())
+        if (!newRecordDate.value) newRecordDate.value = dateStr(new Date())
         newRecordResult.innerText = ""
         newRecordDialog.showModal()
       }
       document.getElementById('new_record_form').onsubmit = (e) => { e.preventDefault() }
       document.getElementById('new_record_submit').onclick = async () => {
-        const content = document.getElementById('new_record_text').value
-        const date = document.getElementById('new_record_date').valueAsDate
+        const content = newRecordText.value
+        const date = newRecordDate.valueAsDate
         if (!content || content.length === 0 || !date) return
         const resp = await fetch(`/api/items`, { method: 'POST', body: JSON.stringify({ Type: store.recordType, State: STATE.Finished, Content: content, Date: date }) })
         if (resp.ok) window.location.reload()
@@ -465,10 +481,12 @@
       }
 
       // ========================= record_type =========================
+      const typeBtn1 = document.getElementById('type_button1')
+      const typeBtn2 = document.getElementById('type_button2')
       const updateTypeBtn = async (cur) => {
         const text = ['日', '周', '月'].filter((_, i) => i !== cur - 1)
-        document.getElementById('type_button1').innerHTML = text[0]
-        document.getElementById('type_button2').innerHTML = text[1]
+        typeBtn1.innerHTML = text[0]
+        typeBtn2.innerHTML = text[1]
         window.location.hash = `#History${['Day', 'Week', 'Month'][cur - 1]}`
 
         timeCursor.to = null
@@ -476,31 +494,26 @@
         recordUl.replaceChildren()
         await loadRecords()
       }
-      document.getElementById('type_button1').onclick = async () => {
+      typeBtn1.onclick = async () => {
         store.recordType = store.recordType === TYPE.HistoryDay ? TYPE.HistoryWeek : TYPE.HistoryDay
         await updateTypeBtn(store.recordType)
       }
-      document.getElementById('type_button2').onclick = async () => {
+      typeBtn2.onclick = async () => {
         store.recordType = store.recordType === TYPE.HistoryMonth ? TYPE.HistoryWeek : TYPE.HistoryMonth
         await updateTypeBtn(store.recordType)
       }
       await updateTypeBtn(store.recordType)
 
       // ========================= onscroll =========================
-      window.onscroll = throttle(async () => {
-        if (window.scrollY + window.innerHeight > document.body.offsetHeight) {
+      const loadMoreRecords = throttle(async (e) => {
+        if ((window.scrollY + window.innerHeight > document.body.offsetHeight) || (e.deltaY > 0 && window.innerHeight > document.body.offsetHeight)) {
           timeCursor.to = timeCursor.from
           timeCursor.from -= STEP[store.recordType]
           await loadRecords()
         }
       }, 300)
-      document.onwheel = throttle(async (e) => {
-        if (e.deltaY > 0 && window.innerHeight > document.body.offsetHeight) {
-          timeCursor.to = timeCursor.from
-          timeCursor.from -= STEP[store.recordType]
-          await loadRecords()
-        }
-      }, 300)
+      window.onscroll = loadMoreRecords
+      document.onwheel = loadMoreRecords
     })()
   </script>
 </body>
