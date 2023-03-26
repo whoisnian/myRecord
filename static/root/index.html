@@ -216,8 +216,7 @@
       const STATE = {
         Deleted: 0,
         Pending: 1,
-        Finished: 2,
-        Abandoned: 3
+        Finished: 2
       }
 
       // ========================= global =========================
@@ -259,17 +258,20 @@
         }
       }
 
+      const itemDescSort = (a, b) => {
+        if (a.Date === b.Date) return b.Id - a.Id
+        return new Date(b.Date) - new Date(a.Date)
+      }
+
       // ========================= scroll_button =========================
       const scrollButton = document.getElementById('scroll_to_top')
-      scrollButton.onclick = () => {
-        window.scroll({ top: 0, left: 0, behavior: 'smooth' })
-      }
+      scrollButton.onclick = () => window.scroll({ top: 0, left: 0, behavior: 'smooth' })
 
       // ========================= flag =========================
       const flagPendingUl = document.getElementById('flag_pending')
       const pendingResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Pending })}`)
       if (!pendingResp.ok) { throw new Error(pendingResp.statusText) }
-      (await pendingResp.json()).forEach(flag => {
+      (await pendingResp.json()).sort(itemDescSort).forEach(flag => {
         const li = document.createElement('li')
         li.innerHTML = `<label><input type="checkbox" autocomplete="off"><span>${html2Escape(flag.Content)}</span></label>`
         li.firstChild.firstChild.onchange = async ({ target: { checked } }) => {
@@ -281,7 +283,7 @@
       const flagFinishedUl = document.getElementById('flag_finished')
       const finishedResp = await fetch(`/api/items?${new URLSearchParams({ type: TYPE.Flag, state: STATE.Finished, from: Date.now() - STEP[TYPE.Flag] })}`)
       if (!finishedResp.ok) { throw new Error(finishedResp.statusText) }
-      (await finishedResp.json()).forEach(flag => {
+      (await finishedResp.json()).sort(itemDescSort).forEach(flag => {
         const li = document.createElement('li')
         li.innerHTML = `<label><input type="checkbox" autocomplete="off" checked=""><span>${html2Escape(flag.Content)}</span></label>`
         li.firstChild.firstChild.onchange = async ({ target: { checked } }) => {
@@ -318,7 +320,7 @@
       const loadRecords = async () => {
         const recordResp = await fetch(`/api/items?${new URLSearchParams({ type: store.recordType, ...getTimeCursor() })}`)
         if (!recordResp.ok) { throw new Error(recordResp.statusText) }
-        (await recordResp.json()).forEach(record => {
+        (await recordResp.json()).sort(itemDescSort).forEach(record => {
           const li = document.createElement('li')
           li.innerHTML = `<div class="record_time">${dateStr(new Date(record.Date))}</div><div class="record_content">${html2Escape(record.Content)}</div>`
           recordUl.appendChild(li)
