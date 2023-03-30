@@ -321,14 +321,15 @@
 
       // ========================= edit_flag =========================
       const editFlagDialog = document.getElementById('edit_flag_dialog')
+      const editFlagText = document.getElementById('edit_flag_text')
+      const editFlagDate = document.getElementById('edit_flag_date')
+      const editFlagResult = document.getElementById('edit_flag_result')
       editFlagDialog.onclick = (e) => {
+        if (e.target === editFlagText || e.target === editFlagDate) return
         const { left, top, height, width } = editFlagDialog.getBoundingClientRect()
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           editFlagDialog.close()
       }
-      const editFlagText = document.getElementById('edit_flag_text')
-      const editFlagDate = document.getElementById('edit_flag_date')
-      const editFlagResult = document.getElementById('edit_flag_result')
       document.getElementById('edit_flag_form').onsubmit = (e) => { e.preventDefault() }
       document.getElementById('edit_flag_update_submit').onclick = async () => {
         const content = editFlagText.value
@@ -387,14 +388,15 @@
 
       // ========================= new_flag =========================
       const newFlagDialog = document.getElementById('new_flag_dialog')
+      const newFlagText = document.getElementById('new_flag_text')
+      const newFlagDate = document.getElementById('new_flag_date')
+      const newFlagResult = document.getElementById('new_flag_result')
       newFlagDialog.onclick = (e) => {
+        if (e.target === newFlagText || e.target === newFlagDate) return
         const { left, top, height, width } = newFlagDialog.getBoundingClientRect()
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           newFlagDialog.close()
       }
-      const newFlagText = document.getElementById('new_flag_text')
-      const newFlagDate = document.getElementById('new_flag_date')
-      const newFlagResult = document.getElementById('new_flag_result')
       document.getElementById('new_flag').onclick = () => {
         if (!newFlagDate.value) newFlagDate.value = dateStr(new Date())
         newFlagResult.innerText = ""
@@ -412,14 +414,15 @@
 
       // ========================= edit_record =========================
       const editRecordDialog = document.getElementById('edit_record_dialog')
+      const editRecordText = document.getElementById('edit_record_text')
+      const editRecordDate = document.getElementById('edit_record_date')
+      const editRecordResult = document.getElementById('edit_record_result')
       editRecordDialog.onclick = (e) => {
+        if (e.target === editRecordText || e.target === editRecordDate) return
         const { left, top, height, width } = editRecordDialog.getBoundingClientRect()
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           editRecordDialog.close()
       }
-      const editRecordText = document.getElementById('edit_record_text')
-      const editRecordDate = document.getElementById('edit_record_date')
-      const editRecordResult = document.getElementById('edit_record_result')
       document.getElementById('edit_record_form').onsubmit = (e) => { e.preventDefault() }
       document.getElementById('edit_record_update_submit').onclick = async () => {
         const content = editRecordText.value
@@ -457,14 +460,15 @@
 
       // ========================= new_record =========================
       const newRecordDialog = document.getElementById('new_record_dialog')
+      const newRecordText = document.getElementById('new_record_text')
+      const newRecordDate = document.getElementById('new_record_date')
+      const newRecordResult = document.getElementById('new_record_result')
       newRecordDialog.onclick = (e) => {
+        if (e.target === newRecordText || e.target === newRecordDate) return
         const { left, top, height, width } = newRecordDialog.getBoundingClientRect()
         if (e.clientY < top || e.clientY > top + height || e.clientX < left || e.clientX > left + width)
           newRecordDialog.close()
       }
-      const newRecordText = document.getElementById('new_record_text')
-      const newRecordDate = document.getElementById('new_record_date')
-      const newRecordResult = document.getElementById('new_record_result')
       document.getElementById('new_record').onclick = () => {
         if (!newRecordDate.value) newRecordDate.value = dateStr(new Date())
         newRecordResult.innerText = ""
